@@ -1,3 +1,5 @@
+require("./config/config");
+
 const _ = require("lodash");
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -8,7 +10,7 @@ var { Todo } = require("./models/todo");
 var { User } = require("./models/user");
 
 var app = express();
-var port = process.env.PORT || 3000;
+var port = process.env.PORT;
 
 app.use(bodyParser.json());
 
@@ -99,13 +101,13 @@ app.patch("/todos/:id", (req, res) => {
   }
 
   //Started up at port 3000
-// (node:19040) DeprecationWarning: collection.findAndModify is deprecated. Use findOneAndUpdate, findOneAndReplace or findOneAndDelete instead.
+  // (node:19040) DeprecationWarning: collection.findAndModify is deprecated. Use findOneAndUpdate, findOneAndReplace or findOneAndDelete instead.
   Todo.findOneAndUpdate(id, { $set: body }, { new: true })
     .then(todo => {
-      if(!todo){
-        return res.status(404).send()
+      if (!todo) {
+        return res.status(404).send();
       }
-      res.status(200).send({todo})
+      res.status(200).send({ todo });
     })
     .catch(e => {
       res.status(400).send();
