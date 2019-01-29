@@ -89,27 +89,69 @@ describe("GET /todos", () => {
 describe("GET /todos/:id", () => {
   it("Should get todo doc ", done => {
     request(app)
-    .get(`/todos/${todos[0]._id.toHexString()}`)
-    .expect(200)
-    .expect(res => {
-      expect(res.body.todo.text).toBe(todos[0].text)
-    })
-    .end(done)
+      .get(`/todos/${todos[0]._id.toHexString()}`)
+      .expect(200)
+      .expect(res => {
+        expect(res.body.todo.text).toBe(todos[0].text);
+      })
+      .end(done);
+  });
+
+  it("Should return 404 if todo not found", done => {
+    var newId = new ObjectID().toHexString();
+    //console.log(newId)
+    request(app)
+      .get(`/todos/${newId}`)
+      .expect(404)
+      .end(done);
+  });
+
+  it("Should return 404 if object id is invalid", done => {
+    request(app)
+      .get(`/todos/123abc`)
+      .expect(404)
+      .end(done);
+  });
+});
+
+describe("DELETE /todos/:id", () => {
+  it("Should delete a todo doc ", done => {
+    var hexId = todos[1]._id.toHexString();
+
+    request(app)
+      .delete(`/todos/${hexId}`)
+      .expect(200)
+      .expect(res => {
+        expect(res.body.todo._id).toBe(hexId);
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(hexId)
+          .then(todo => {
+            //expect(todo).toBe(null);
+            expect(todo).toBeFalsy();
+            done();
+          })
+          .catch(e => done(e));
+      });
   });
 
   it('Should return 404 if todo not found', (done) => {
     var newId = new ObjectID().toHexString();
     //console.log(newId)
     request(app)
-    .get(`/todos/${newId}`)
-    .expect(404)
-    .end(done)
+      .delete(`/todos/${newId}`)
+      .expect(404)
+      .end(done);
   })
 
-  it('Should return 404 if todo not found', (done) => {
+  it('Should return 404 if object id is invalid', (done) => {
     request(app)
-    .get(`/todos/123abc`)
-    .expect(404)
-    .end(done)
+      .delete(`/todos/123abc`)
+      .expect(404)
+      .end(done);
   })
 });
