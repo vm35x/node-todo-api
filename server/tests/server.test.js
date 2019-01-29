@@ -1,6 +1,7 @@
 const expect = require("expect");
 const request = require("supertest");
 const { ObjectID } = require("mongodb");
+const _ = require("lodash");
 
 const { app } = require("./../server");
 const { Todo } = require("./../models/todo");
@@ -13,7 +14,9 @@ const todos = [
   },
   {
     _id: new ObjectID(),
-    text: "Second test todo"
+    text: "Second test todo",
+    completed: true,
+    completedAt: 333
   }
 ];
 
@@ -139,19 +142,92 @@ describe("DELETE /todos/:id", () => {
       });
   });
 
-  it('Should return 404 if todo not found', (done) => {
+  it("Should return 404 if todo not found", done => {
     var newId = new ObjectID().toHexString();
     //console.log(newId)
     request(app)
       .delete(`/todos/${newId}`)
       .expect(404)
       .end(done);
-  })
+  });
 
-  it('Should return 404 if object id is invalid', (done) => {
+  it("Should return 404 if object id is invalid", done => {
     request(app)
       .delete(`/todos/123abc`)
       .expect(404)
       .end(done);
-  })
+  });
 });
+
+describe("PATCH /todos", () => {
+  it("Should update a todo", done => {
+    // get id of first item
+    var hexIdOne = todos[0]._id.toHexString();
+    var text = "This should be new text";
+
+    request(app)
+    .patch(`/todos/${hexIdOne}`)
+    .send({
+      completed: true,
+      text
+    })
+    .expect(200)
+    .expect(res => {
+      expect(res.body.todo.completed).toBeTruthy();
+      expect(res.body.todo.text).toBe(text);
+      expect(typeof res.body.todo.completedAt).toBe('number');
+    })
+    .end(done)
+    
+  });
+
+  it("Should clear completedAt when todo is not completed", done => {
+    // get id of second item
+    var hexId2 = todos[1]._id.toHexString();
+
+      var text = "Updated text two";  
+      var completed = false 
+
+    request(app)
+    .patch(`/todos/${hexId2}`)
+    .send({
+      completed,
+      text
+    })
+    .expect(200)
+    .expect(res => {
+      expect(res.body.todo.completed).toBeFalsy();
+      expect(res.body.todo.text).toBe(text);
+      expect(res.body.todo.completedAt).toBe(null);
+    })
+    .end(done)
+});
+});
+// it("Should update a todo", done => {
+//   // get id of first item
+//   var hexIdOne = todos[0]._id.toHexString();
+//   var body = { 
+//     text: "Updated text one",  
+//     completed: true 
+//   };
+
+//   request(app)
+//     .patch(`/todos/${hexIdOne}`)
+//     .expect(200)
+//     .expect(res => {
+//       //console.log('res.body.todo ', res.body.todo)
+//       expect(res.body.todo.completed).toBeFalsy();
+//     })
+//     .end((err, res) => {
+//       if (err) {
+//         return done(err);
+//       }
+//       Todo.findOneAndUpdate(hexIdOne, { $set: body }, { new: true })
+//         .then(todo => {
+//           console.log('todo ', todo)
+//           expect(todo.completed).toBeTruthy();
+//           done();
+//         })
+//         .catch(e => done(e));
+//     });
+// });
