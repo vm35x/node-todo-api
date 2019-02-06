@@ -201,15 +201,15 @@ describe("GET users/me", () => {
 
   it("should return 401 if not authenticated", done => {
     request(app)
-    .get("/user/me")
-    // .expect(401)
-    .expect(res => {
-      console.log('res.body ', res.body)
-      expect(res.body).toEqual({});
-    })
-    .end(done)
-  })
-})
+      .get("/user/me")
+      // .expect(401)
+      .expect(res => {
+        console.log("res.body ", res.body);
+        expect(res.body).toEqual({});
+      })
+      .end(done);
+  });
+});
 
 describe("GET users", () => {
   it("should create a user", done => {
@@ -218,46 +218,97 @@ describe("GET users", () => {
 
     request(app)
       .post("/users")
-      .send({email, password})
+      .send({ email, password })
       .expect(200)
-      .expect((res) => {
-        expect(res.headers['x-auth']).toBeTruthy();
+      .expect(res => {
+        expect(res.headers["x-auth"]).toBeTruthy();
         expect(res.body._id).toBeTruthy();
-        expect(res.body.email).toBe(email)
+        expect(res.body.email).toBe(email);
       })
       .end(err => {
-        if(err){
-          return done(err)
+        if (err) {
+          return done(err);
         }
 
-        User.findOne({email}).then(user => {
-          expect(user).toBeTruthy()
+        User.findOne({ email }).then(user => {
+          expect(user).toBeTruthy();
           // console.log('user.password ', user.password)
           // console.log('password ', password)
-          // expect(user.password).toNotBe(password) // TODO: figure out why failing
-          done()
-        })
+          expect(user.password).not.toBe(password) // TODO: figure out why failing
+          done();
+        }).catch((e) => done(e))
       });
   });
 
-  it("should return validation errors if request invalid", (done) => {
+  it("should return validation errors if request invalid", done => {
     var email = "test@testcom";
     var password = "Pass1";
     request(app)
-    .post("/users")
-    .send({email, password})
-    .expect(400)
-    .end(done)
+      .post("/users")
+      .send({ email, password })
+      .expect(400)
+      .end(done);
   });
-  
-  it("should not create user if email in use", (done) => {
+
+  it("should not create user if email in use", done => {
     var email = "userone@test.com";
     var password = "Password123!";
 
     request(app)
-    .post("/users")
-    .send({email, password})
+      .post("/users")
+      .send({ email, password })
+      .expect(400)
+      .end(done);
+  });
+});
+
+describe("POST /users/login", () => {
+  it("should login user and return token", done => {
+    request(app)
+    .post("/users/login")
+    .send({
+      email: users[1].email,
+      password: users[1].password,
+    })
+    .expect(200)
+    .expect(res => {
+      expect(res.headers["x-auth"]).toBeTruthy();
+    })
+    .end((err, res) => {
+      if(err){
+        done(err)
+      }
+
+      User.findById(users[1]._id).then((user) => {
+          expect(user.tokens[0]).toMatchObject({
+            access: 'auth',
+            token: res.headers['x-auth']
+          })
+          done()
+      }).catch((e) => done(e))
+    })
+  });
+
+  it("should reject invalid login", done => {
+    request(app)
+    .post("/users/login")
+    .send({
+      email: users[1].email,
+      password: users[1].password + '1',
+    })
     .expect(400)
-    .end(done)
+    .expect(res => {
+      expect(res.headers["x-auth"]).toBeFalsy();
+    })
+    .end((err, res) => {
+      if(err){
+        done(err)
+      }
+
+      User.findById(users[1]._id).then((user) => {
+        expect(user.tokens.length).toBe(0)
+          done()
+      }).catch((e) => done(e))
+    })
   });
 });
