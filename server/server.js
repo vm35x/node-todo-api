@@ -65,7 +65,7 @@ app.delete("/todos/:id", (req, res) => {
   //get id
   var id = req.params.id;
 
-  // validate id -> if not valid return 404
+  // validate id -> if not valid return 401
   if (!ObjectID.isValid(id)) {
     return res.status(404).send();
   }
@@ -84,12 +84,13 @@ app.delete("/todos/:id", (req, res) => {
     });
 });
 
+// PATCH /todos/:id
 app.patch("/todos/:id", (req, res) => {
   //get id
   var id = req.params.id;
   var body = _.pick(req.body, ["text", "completed"]);
 
-  // validate id -> if not valid return 404
+  // validate id -> if not valid return 401
   if (!ObjectID.isValid(id)) {
     return res.status(404).send();
   }
@@ -101,7 +102,6 @@ app.patch("/todos/:id", (req, res) => {
     body.completedAt = null;
   }
 
-  //Started up at port 3000
   // (node:19040) DeprecationWarning: collection.findAndModify is deprecated. Use findOneAndUpdate, findOneAndReplace or findOneAndDelete instead.
   Todo.findOneAndUpdate(id, { $set: body }, { new: true })
     .then(todo => {
@@ -115,25 +115,34 @@ app.patch("/todos/:id", (req, res) => {
     });
 });
 
+// POST /users
 app.post("/users", (req, res) => {
   var body = _.pick(req.body, ["email", "password"]);
   var user = new User(body);
 
-  user
-    .save()
-    .then(() => {
+  user.save().then(() => {
       return user.generateAuthToken();
-    })
-    .then(token => {
+    }).then(token => {
       res.header("x-auth", token).send(user);
-    })
-    .catch(e => {
+    }).catch(e => {
       res.status(400).send(e);
     });
 });
 
 app.get("/users/me", authenticate, (req, res) => {
   res.send(req.user);
+});
+
+app.post("/users/login", (req, res) => {
+  var body = _.pick(req.body, ["email", "password"]);
+  User.findByCredentials(body.email, body.password)
+    .then(user => {
+      res.send(user)
+    })
+    .catch(err => {
+      res.status(400).send(err);
+    });
+  res.send(body);
 });
 
 app.listen(port, () => {

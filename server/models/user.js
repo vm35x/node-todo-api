@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
+const bcrypt = require("bcryptjs");
 
 var UserSchema = new mongoose.Schema({
   email: {
@@ -43,11 +44,8 @@ UserSchema.methods.toJSON = function() {
 
 UserSchema.methods.generateAuthToken = function() {
   var user = this;
-
   var access = "auth";
-  var token = jwt
-    .sign({ _id: user._id.toHexString(), access }, "abc123")
-    .toString();
+  var token = jwt.sign({ _id: user._id.toHexString(), access }, "abc123").toString();
 
   user.tokens = user.tokens.concat([{ access, token }]);
   //user.tokens.push({ access, token });
@@ -63,7 +61,6 @@ UserSchema.statics.findByToken = function(token) {
 
   try {
     decoded = jwt.verify(token, "abc123");
-    
   } catch (e) {
     // return new Promise((resolve, reject) => {
     //  reject()
@@ -76,8 +73,48 @@ UserSchema.statics.findByToken = function(token) {
     "tokens.token": token,
     "tokens.access": "auth"
   });
-
 };
+
+UserSchema.statics.findByCredentials = function(email, password) {
+  var User = this;
+
+  return User.findOne({ email }).then(user => {
+    if (!user) {
+      return Promise.reject();
+    }
+
+    return new Promise((resolve, reject) => {
+      bcrypt.compare(password, user.password,(err, res) => {
+        console.log('user.password ', user.password)
+        console.log('password ', password)
+          if (res) {
+            console.log("res ", res, 'resolve');
+            resolve(user);
+          } else {
+            console.log("res ", res, 'reject');
+            reject();
+          }
+        });
+    });
+  });
+};
+
+UserSchema.pre("save", function(next) {
+  var user = this;
+
+  if (user.isModified('password')) {
+    bcrypt.genSalt(10, (err, salt) => {
+      // if (err) { next(); }
+      bcrypt.hash(user.password, salt, (err, hash) => {
+        // if (err) { next(); }
+        user.password = hash;
+        next();
+      });
+    });
+  } else {
+    next();
+  }
+});
 
 var User = mongoose.model("User", UserSchema);
 
