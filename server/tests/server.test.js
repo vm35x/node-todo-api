@@ -234,7 +234,7 @@ describe("GET users", () => {
           expect(user).toBeTruthy()
           // console.log('user.password ', user.password)
           // console.log('password ', password)
-          // expect(user.password).toNotBe(password)
+          // expect(user.password).toNotBe(password) // TODO: figure out why failing
           done()
         })
       });
