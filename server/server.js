@@ -110,7 +110,11 @@ app.patch("/todos/:id", authenticate, (req, res) => {
   }
 
   // (node:19040) DeprecationWarning: collection.findAndModify is deprecated. Use findOneAndUpdate, findOneAndReplace or findOneAndDelete instead.
-  Todo.findOneAndUpdate({ _id: id, _creator: req.user._id}, { $set: body }, { new: true })
+  Todo.findOneAndUpdate(
+    { _id: id, _creator: req.user._id },
+    { $set: body },
+    { new: true }
+  )
     .then(todo => {
       if (!todo) {
         return res.status(404).send();
